@@ -24,6 +24,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
+import MicIcon from '@mui/icons-material/Mic';
 import { useAuth } from '../../contexts/AuthContext';
 import ProductFormModal from '../../components/product/ProductFormModal';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
@@ -40,6 +41,7 @@ const ProductsPage = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recognizing, setRecognizing] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -122,6 +124,67 @@ const ProductsPage = () => {
     }
   };
 
+  const handleVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("La reconnaissance vocale n'est pas supportée sur ce navigateur.");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.start();
+    setRecognizing(true);
+
+    recognition.onresult = async (event) => {
+      const transcript = event.results[0][0].transcript.toLowerCase();
+
+      // Expressions régulières pour plusieurs phrases
+      // Exemples reconnus : "ajoute 2 téléphones", "ajouter cinq stylos", "rajoute 10 souris"
+      const regex = /(ajoute|rajoute|ajouter)\s+(\d+|\w+)\s+([\w\s]+)/;
+      const match = transcript.match(regex);
+
+      // Conversion des nombres écrits en lettres
+      const numberWords = {
+        'un': 1, 'deux': 2, 'trois': 3, 'quatre': 4, 'cinq': 5, 'six': 6, 'sept': 7,
+        'huit': 8, 'neuf': 9, 'dix': 10, 'onze': 11, 'douze': 12, 'vingt': 20
+      };
+
+      if (match) {
+        let qty = parseInt(match[2], 10);
+        if (isNaN(qty)) {
+          qty = numberWords[match[2]] || 1; // Par défaut 1 si non reconnu
+        }
+        const productName = match[3].trim();
+
+        // Recherche du produit le plus proche (nom inclusif, insensible à la casse)
+        const product = products.find(p =>
+          p.name.toLowerCase().includes(productName) ||
+          productName.includes(p.name.toLowerCase())
+        );
+        if (product) {
+          const updatedProduct = { ...product, currentStock: Number(product.currentStock) + qty };
+          try {
+            await axios.put(`/api/products/${product.id}`, updatedProduct);
+            setProducts(products.map(p => p.id === product.id ? updatedProduct : p));
+            alert(`Stock mis à jour : +${qty} ${product.name}`);
+          } catch (err) {
+            alert("Erreur lors de la mise à jour du stock.");
+          }
+        } else {
+          alert(`Produit "${productName}" non trouvé.`);
+        }
+      } else {
+        alert("Commande vocale non reconnue. Essayez : 'ajoute deux téléphones', 'rajoute cinq stylos'...");
+      }
+      setRecognizing(false);
+    };
+
+    recognition.onerror = () => {
+      alert("Erreur de reconnaissance vocale.");
+      setRecognizing(false);
+    };
+  };
+
   return (
     <Container maxWidth="xl">
       <Box sx={{ mb: 4 }}>
@@ -144,7 +207,7 @@ const ProductsPage = () => {
             }}
             sx={{ width: 300 }}
           />
-          {user?.role === 'admin' && (
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               variant="contained"
               color="primary"
@@ -153,7 +216,15 @@ const ProductsPage = () => {
             >
               Add Product
             </Button>
-          )}
+            <Button
+              variant="outlined"
+              startIcon={<MicIcon />}
+              onClick={handleVoiceInput}
+              disabled={recognizing}
+            >
+              Saisie vocale
+            </Button>
+          </Box>
         </Box>
       </Box>
 

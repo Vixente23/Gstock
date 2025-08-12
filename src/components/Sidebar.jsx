@@ -73,7 +73,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
       <Divider />
       <List>
         <ListItem disablePadding>
-          <ListItemButton>
+          <ListItemButton component={Link} to="/settings">
             <ListItemIcon>
               <SettingsIcon />
             </ListItemIcon>

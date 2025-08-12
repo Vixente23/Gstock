@@ -24,6 +24,8 @@ import { useAuth } from './contexts/AuthContext';
 import ProductsPage from './pages/products/ProductsPage';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { Box } from '@mui/material';
+import Profile from './components/profile';
+import SettingsPage from './pages/SettingsPage';
 
 
 
@@ -48,6 +50,8 @@ function App() {
               <Route path="/stock" element={<StockMovementsPage />} />
               <Route path="/suppliers" element={<SuppliersPage />} />
               <Route path="/users" element={<UsersPage />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Route>
 

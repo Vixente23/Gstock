@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   AppBar, 
   Avatar, 
@@ -13,6 +14,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { useAuth } from '../contexts/AuthContext';
 
 const Header = ({ onDrawerToggle }) => {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = React.useState(null);
 
@@ -55,8 +57,7 @@ const Header = ({ onDrawerToggle }) => {
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
           >
-            <MenuItem onClick={handleMenuClose}>Profil</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Paramètres</MenuItem>
+            <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}>Profil</MenuItem>
             <MenuItem onClick={handleLogout}>Déconnexion</MenuItem>
           </Menu>
         </Box>
