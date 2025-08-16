@@ -11,7 +11,10 @@ import {
   InputAdornment,
   Grid,
   Paper,
-  CircularProgress
+  CircularProgress,
+  useMediaQuery,
+  useTheme,
+  Stack
 } from '@mui/material';
 import { Edit, Save, Cancel, Visibility, VisibilityOff, CloudUpload } from '@mui/icons-material';
 import { useFormik } from 'formik';
@@ -28,6 +31,10 @@ const currentUser = {
 };
 
 const ProfileEdit = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -89,19 +96,42 @@ const ProfileEdit = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 700 }}>Modifier le profil</Typography>
+    <Box sx={{ 
+      maxWidth: 800, 
+      mx: 'auto', 
+      p: isMobile ? 2 : 3,
+      width: '100%'
+    }}>
+      <Typography 
+        variant={isMobile ? 'h5' : 'h4'} 
+        sx={{ 
+          mb: 3, 
+          fontWeight: 700,
+          textAlign: isMobile ? 'center' : 'left'
+        }}
+      >
+        Modifier le profil
+      </Typography>
       
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
-        <Grid container spacing={4}>
+      <Paper elevation={3} sx={{ 
+        p: isMobile ? 2 : 4, 
+        borderRadius: 3,
+        overflow: 'hidden'
+      }}>
+        <Grid container spacing={isMobile ? 2 : 4}>
           {/* Left Column - Avatar */}
           <Grid item xs={12} md={4}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              mb: isMobile ? 3 : 0
+            }}>
               <Avatar 
                 src={previewImage} 
                 sx={{ 
-                  width: 150, 
-                  height: 150, 
+                  width: isMobile ? 100 : 150, 
+                  height: isMobile ? 100 : 150, 
                   mb: 2,
                   border: '3px solid',
                   borderColor: 'primary.main'
@@ -122,12 +152,19 @@ const ProfileEdit = () => {
                   component="span"
                   startIcon={<CloudUpload />}
                   sx={{ mb: 2 }}
+                  size={isMobile ? 'small' : 'medium'}
+                  fullWidth={isMobile}
                 >
                   Changer la photo
                 </Button>
               </label>
               
-              <Typography variant="body2" color="textSecondary" align="center">
+              <Typography 
+                variant="body2" 
+                color="textSecondary" 
+                align="center"
+                sx={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+              >
                 Formats supportés: JPG, PNG
                 <br />
                 Taille max: 5MB
@@ -138,10 +175,19 @@ const ProfileEdit = () => {
           {/* Right Column - Form */}
           <Grid item xs={12} md={8}>
             <form onSubmit={formik.handleSubmit}>
-              <Grid container spacing={3}>
+              <Grid container spacing={isMobile ? 2 : 3}>
                 {/* Personal Info Section */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Informations personnelles</Typography>
+                  <Typography 
+                    variant={isMobile ? 'subtitle1' : 'h6'} 
+                    sx={{ 
+                      mb: 2, 
+                      fontWeight: 600,
+                      fontSize: isMobile ? '1rem' : '1.25rem'
+                    }}
+                  >
+                    Informations personnelles
+                  </Typography>
                   <Divider sx={{ mb: 2 }} />
                 </Grid>
                 
@@ -155,6 +201,7 @@ const ProfileEdit = () => {
                     onChange={formik.handleChange}
                     error={formik.touched.name && Boolean(formik.errors.name)}
                     helperText={formik.touched.name && formik.errors.name}
+                    size={isMobile ? 'small' : 'medium'}
                   />
                 </Grid>
                 
@@ -169,6 +216,7 @@ const ProfileEdit = () => {
                     onChange={formik.handleChange}
                     error={formik.touched.email && Boolean(formik.errors.email)}
                     helperText={formik.touched.email && formik.errors.email}
+                    size={isMobile ? 'small' : 'medium'}
                   />
                 </Grid>
                 
@@ -182,6 +230,7 @@ const ProfileEdit = () => {
                     onChange={formik.handleChange}
                     error={formik.touched.phone && Boolean(formik.errors.phone)}
                     helperText={formik.touched.phone && formik.errors.phone}
+                    size={isMobile ? 'small' : 'medium'}
                   />
                 </Grid>
                 
@@ -195,14 +244,31 @@ const ProfileEdit = () => {
                     onChange={formik.handleChange}
                     error={formik.touched.address && Boolean(formik.errors.address)}
                     helperText={formik.touched.address && formik.errors.address}
+                    size={isMobile ? 'small' : 'medium'}
                   />
                 </Grid>
                 
                 {/* Password Section */}
                 <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Changer le mot de passe</Typography>
+                  <Typography 
+                    variant={isMobile ? 'subtitle1' : 'h6'} 
+                    sx={{ 
+                      mb: 2, 
+                      fontWeight: 600,
+                      fontSize: isMobile ? '1rem' : '1.25rem'
+                    }}
+                  >
+                    Changer le mot de passe
+                  </Typography>
                   <Divider sx={{ mb: 2 }} />
-                  <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                  <Typography 
+                    variant="body2" 
+                    color="textSecondary" 
+                    sx={{ 
+                      mb: 2,
+                      fontSize: isMobile ? '0.75rem' : '0.875rem'
+                    }}
+                  >
                     Laissez vide si vous ne souhaitez pas changer le mot de passe
                   </Typography>
                 </Grid>
@@ -218,14 +284,16 @@ const ProfileEdit = () => {
                     onChange={formik.handleChange}
                     error={formik.touched.currentPassword && Boolean(formik.errors.currentPassword)}
                     helperText={formik.touched.currentPassword && formik.errors.currentPassword}
+                    size={isMobile ? 'small' : 'medium'}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
                           <IconButton
                             onClick={() => setShowPassword(!showPassword)}
                             edge="end"
+                            size={isMobile ? 'small' : 'medium'}
                           >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                            {showPassword ? <VisibilityOff fontSize={isMobile ? 'small' : 'medium'} /> : <Visibility fontSize={isMobile ? 'small' : 'medium'} />}
                           </IconButton>
                         </InputAdornment>
                       ),
@@ -244,17 +312,25 @@ const ProfileEdit = () => {
                     onChange={formik.handleChange}
                     error={formik.touched.newPassword && Boolean(formik.errors.newPassword)}
                     helperText={formik.touched.newPassword && formik.errors.newPassword}
+                    size={isMobile ? 'small' : 'medium'}
                   />
                 </Grid>
                 
                 {/* Actions */}
                 <Grid item xs={12} sx={{ mt: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                  <Stack 
+                    direction={isMobile ? 'column-reverse' : 'row'} 
+                    spacing={2} 
+                    justifyContent="flex-end"
+                    sx={{ width: '100%' }}
+                  >
                     <Button
                       variant="outlined"
                       startIcon={<Cancel />}
                       onClick={handleCancel}
                       disabled={isSubmitting}
+                      fullWidth={isMobile}
+                      size={isMobile ? 'medium' : 'large'}
                     >
                       Annuler
                     </Button>
@@ -264,10 +340,12 @@ const ProfileEdit = () => {
                       type="submit"
                       startIcon={isSubmitting ? <CircularProgress size={20} /> : <Save />}
                       disabled={isSubmitting || !formik.dirty}
+                      fullWidth={isMobile}
+                      size={isMobile ? 'medium' : 'large'}
                     >
                       {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
                     </Button>
-                  </Box>
+                  </Stack>
                 </Grid>
               </Grid>
             </form>
@@ -278,4 +356,4 @@ const ProfileEdit = () => {
   );
 };
 
-export default Edit;
+export default ProfileEdit;
