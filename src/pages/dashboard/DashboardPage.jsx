@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -6,6 +6,10 @@ import {
   CardContent,
   Grid,
   Typography,
+  Stack,
+  Avatar,
+  Tooltip,
+  useMediaQuery
 } from '@mui/material';
 import {
   Inventory as InventoryIcon,
@@ -14,7 +18,6 @@ import {
   People as PeopleIcon,
 } from '@mui/icons-material';
 import axios from '../../api/axios';
-import { useEffect, useState } from 'react';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -45,50 +48,72 @@ const DashboardPage = () => {
     fetchExpiringProducts();
   }, []);
 
+  const isMobile = useMediaQuery('(max-width:600px)');
+
   return (
-    <Box>
+    <Box sx={{
+      minHeight: '100vh',
+      px: { xs: 1, sm: 4 },
+      py: { xs: 2, sm: 5 },
+      background: 'linear-gradient(120deg, #0e2148 0%, #483aa0 60%, #7965c1 100%)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      width: '100%',
+    }}>
+      {/* Notification lots expirants */}
       {expiringLots.length > 0 && (
-        <Card sx={{ mb: 3, backgroundColor: '#fffbe6', border: '1px solid #ffe082' }}>
+        <Card sx={{ mb: 3, background: 'linear-gradient(90deg, #483aa0 0%, #7965c1 100%)', border: '1px solid #7965c1', boxShadow: 4, maxWidth: 600, width: '100%' }}>
           <CardContent>
-            <Typography variant="h6" color="warning.main">
+            <Typography variant="h6" sx={{ color: '#fff', fontWeight: 700 }}>
               {expiringLots.length} lots de produits alimentaires vont expirer dans 10 jours. Pensez à les mettre en promo.
             </Typography>
           </CardContent>
         </Card>
       )}
-      <Typography variant="h4" gutterBottom>
-        Tableau de bord
-      </Typography>
-      <Grid container spacing={3}>
+
+      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" spacing={2} sx={{ mb: 4, width: '100%', maxWidth: 1200 }}>
+        <Box>
+          <Typography variant={{ xs: 'h5', sm: 'h3' }} fontWeight={700} sx={{ color: '#fff', letterSpacing: '-1px' }}>
+            Tableau de bord
+          </Typography>
+          <Typography variant="subtitle1" sx={{ color: '#7965c1', fontWeight: 500 }}>
+            Vue synthétique de votre activité et de vos stocks
+          </Typography>
+        </Box>
+      </Stack>
+
+      <Grid container spacing={{ xs: 2, sm: 4 }} sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
         {stats.map((stat, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
             <Card
-              sx={{ cursor: 'pointer', transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 6 } }}
               onClick={() => navigate(stat.route)}
+              sx={{
+                cursor: 'pointer',
+                borderRadius: 5,
+                boxShadow: 6,
+                background: 'linear-gradient(120deg, #483aa0 0%, #7965c1 100%)',
+                p: 0,
+                transition: 'transform 0.18s, box-shadow 0.18s',
+                '&:hover': {
+                  transform: 'scale(1.04)',
+                  boxShadow: 12,
+                  background: 'linear-gradient(120deg, #7965c1 0%, #483aa0 100%)',
+                },
+              }}
             >
               <CardContent>
-                <Box display="flex" justifyContent="space-between">
-                  <div>
-                    <Typography color="textSecondary" gutterBottom>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Avatar sx={{ bgcolor: 'linear-gradient(135deg, #0e2148 0%, #7965c1 100%)', color: '#fff', width: 56, height: 56, boxShadow: 2 }}>
+                    {stat.icon}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ color: '#7965c1', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
                       {stat.title}
                     </Typography>
-                    <Typography variant="h5">{stat.value}</Typography>
-                  </div>
-                  <Box
-                    sx={{
-                      backgroundColor: 'primary.main',
-                      color: 'white',
-                      borderRadius: '50%',
-                      width: 56,
-                      height: 56,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {stat.icon}
+                    <Typography variant="h4" fontWeight={700} sx={{ color: '#fff' }}>{stat.value}</Typography>
                   </Box>
-                </Box>
+                </Stack>
               </CardContent>
             </Card>
           </Grid>

@@ -15,9 +15,9 @@ const MainLayout = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex' }}>
+  <Box sx={{ display: 'flex', minHeight: '100vh', background: 'linear-gradient(120deg, #0e2148 0%, #483aa0 60%, #7965c1 100%)', overflowX: 'hidden' }}>
       <CssBaseline />
-      <Header handleDrawerToggle={handleDrawerToggle} />
+  <Header onDrawerToggle={handleDrawerToggle} />
       <Sidebar 
         mobileOpen={mobileOpen} 
         handleDrawerToggle={handleDrawerToggle} 
@@ -27,10 +27,15 @@ const MainLayout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          px: { xs: 1, sm: 3, md: 5 },
+          py: { xs: 1, sm: 3 },
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           minHeight: '100vh',
-          backgroundColor: '#f5f5f5'
+          background: 'linear-gradient(120deg, #483aa0 0%, #7965c1 100%)',
+          borderTopLeftRadius: { sm: 32 },
+          borderBottomLeftRadius: { sm: 32 },
+          boxShadow: { sm: '0 8px 32px 0 #67dffa11' },
+          transition: 'all .2s',
         }}
       >
         <Toolbar />

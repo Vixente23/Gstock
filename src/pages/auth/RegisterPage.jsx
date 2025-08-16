@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Avatar, 
-  Box, 
-  Button, 
-  Container, 
-  Grid, 
-  Link, 
-  TextField, 
-  Typography 
+import {
+  Avatar,
+  Box,
+  Button,
+  Container,
+  Grid,
+  Link,
+  TextField,
+  Typography
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
@@ -60,58 +60,63 @@ const RegisterPage = () => {
         <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
           <LockOutlinedIcon />
         </Avatar>
+
         <Typography component="h1" variant="h5">
           Inscription
         </Typography>
+
         {error && (
           <Typography color="error" sx={{ mt: 2 }}>
             {error}
           </Typography>
         )}
-        <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
-                autoComplete="given-name"
                 name="firstName"
                 required
                 fullWidth
                 id="firstName"
                 label="Prénom"
-                autoFocus
+                autoComplete="given-name"
                 value={formData.firstName}
                 onChange={handleChange}
               />
             </Grid>
+
             <Grid item xs={12} sm={6}>
               <TextField
+                name="lastName"
                 required
                 fullWidth
                 id="lastName"
                 label="Nom"
-                name="lastName"
                 autoComplete="family-name"
                 value={formData.lastName}
                 onChange={handleChange}
               />
             </Grid>
+
             <Grid item xs={12}>
               <TextField
+                name="email"
                 required
                 fullWidth
                 id="email"
                 label="Email"
-                name="email"
                 autoComplete="email"
                 value={formData.email}
                 onChange={handleChange}
               />
             </Grid>
+
             <Grid item xs={12}>
               <TextField
+                name="password"
                 required
                 fullWidth
-                name="password"
                 label="Mot de passe"
                 type="password"
                 id="password"
@@ -120,11 +125,12 @@ const RegisterPage = () => {
                 onChange={handleChange}
               />
             </Grid>
+
             <Grid item xs={12}>
               <TextField
+                name="confirmPassword"
                 required
                 fullWidth
-                name="confirmPassword"
                 label="Confirmer le mot de passe"
                 type="password"
                 id="confirmPassword"
@@ -133,6 +139,7 @@ const RegisterPage = () => {
               />
             </Grid>
           </Grid>
+
           <Button
             type="submit"
             fullWidth
@@ -141,6 +148,7 @@ const RegisterPage = () => {
           >
             S'inscrire
           </Button>
+
           <Grid container justifyContent="flex-end">
             <Grid item>
               <Link href="/login" variant="body2">

@@ -4,7 +4,6 @@ import {
   Button,
   Card,
   Container,
-  Grid,
   IconButton,
   InputAdornment,
   Paper,
@@ -17,24 +16,46 @@ import {
   TableRow,
   TextField,
   Typography,
+  Stack,
+  Chip,
+  Tooltip,
+  useMediaQuery,
+  useTheme,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  CircularProgress,
+  Badge,
+  Avatar
 } from '@mui/material';
 import {
   Add as AddIcon,
   Search as SearchIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Mic as MicIcon,
+  Warning as WarningIcon,
+  Inventory as InventoryIcon
 } from '@mui/icons-material';
-import MicIcon from '@mui/icons-material/Mic';
 import { useAuth } from '../../contexts/AuthContext';
 import ProductFormModal from '../../components/product/ProductFormModal';
 import ConfirmationDialog from '../../components/common/ConfirmationDialog';
 import axios from '../../api/axios';
 
 const ProductsPage = () => {
+  const theme = useTheme();
   const { user } = useAuth();
+  
+  // Breakpoints
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+
+  // State management
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 10);
   const [searchTerm, setSearchTerm] = useState('');
   const [openModal, setOpenModal] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
@@ -42,160 +63,477 @@ const ProductsPage = () => {
   const [productToDelete, setProductToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recognizing, setRecognizing] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
 
+  // Data processing functions
+  function getStockRecommendations(products) {
+    return products
+      .filter(p => Number(p.currentStock) <= Number(p.alertLevel))
+      .map(p => ({
+        product: p,
+        message: `Stock faible: ${p.name}`,
+        details: `Il reste ${p.currentStock} unités (seuil: ${p.alertLevel})`
+      }));
+  }
+
+  function getAnomalyNotifications(products) {
+    const anomalies = [];
+    products.forEach(p => {
+      if (p.lastOut && p.lastOut > 30 && !p.lastSale) {
+        anomalies.push({
+          product: p,
+          message: `Anomalie: ${p.name}`,
+          details: `Sortie de ${p.lastOut} unités sans vente enregistrée`
+        });
+      }
+    });
+    return anomalies;
+  }
+
+  const anomalyNotifications = getAnomalyNotifications(products);
+  const stockRecommendations = getStockRecommendations(products);
+
+  // Effects
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get('/api/products');
         setProducts(response.data);
-        setLoading(false);
       } catch (err) {
         console.error('Error fetching products:', err);
+      } finally {
         setLoading(false);
       }
     };
-
     fetchProducts();
   }, []);
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
+  useEffect(() => {
+    const allNotifs = [
+      ...stockRecommendations.map(r => r.message),
+      ...anomalyNotifications.map(a => a.message),
+    ];
+    if (allNotifs.length > 0) {
+      localStorage.setItem('stock_notifications', JSON.stringify(allNotifs));
+    } else {
+      localStorage.removeItem('stock_notifications');
+    }
+  }, [stockRecommendations, anomalyNotifications]);
 
+  // Handlers
+  const handleSearch = (e) => setSearchTerm(e.target.value);
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.code.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleChangePage = (event, newPage) => setPage(newPage);
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setPage(0);
-  };
-
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const handleOpenModal = (product = null) => {
     setCurrentProduct(product);
     setOpenModal(true);
   };
+  const handleCloseModal = () => setOpenModal(false);
 
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    setCurrentProduct(null);
-  };
-
-  const handleSaveProduct = async (productData) => {
-    try {
-      if (currentProduct) {
-        // Update existing product
-        await axios.put(`/api/products/${currentProduct.id}`, productData);
-        setProducts(products.map(p => p.id === currentProduct.id ? { ...p, ...productData } : p));
-      } else {
-        // Create new product
-        const response = await axios.post('/api/products', productData);
-        setProducts([...products, response.data]);
-      }
-      handleCloseModal();
-    } catch (err) {
-      console.error('Error saving product:', err);
+  const handleSaveProduct = (savedProduct) => {
+    if (savedProduct.id) {
+      setProducts(products.map(p => p.id === savedProduct.id ? savedProduct : p));
+    } else {
+      setProducts([...products, savedProduct]);
     }
+    setOpenModal(false);
   };
 
   const handleOpenDeleteDialog = (product) => {
     setProductToDelete(product);
     setOpenDeleteDialog(true);
   };
-
-  const handleCloseDeleteDialog = () => {
-    setOpenDeleteDialog(false);
-    setProductToDelete(null);
-  };
+  const handleCloseDeleteDialog = () => setOpenDeleteDialog(false);
 
   const handleDeleteProduct = async () => {
     try {
       await axios.delete(`/api/products/${productToDelete.id}`);
       setProducts(products.filter(p => p.id !== productToDelete.id));
-      handleCloseDeleteDialog();
     } catch (err) {
       console.error('Error deleting product:', err);
+    } finally {
+      setOpenDeleteDialog(false);
     }
   };
 
   const handleVoiceInput = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
     if (!SpeechRecognition) {
-      alert("La reconnaissance vocale n'est pas supportée sur ce navigateur.");
+      alert("La reconnaissance vocale n'est pas supportée par votre navigateur.");
       return;
     }
+
     const recognition = new SpeechRecognition();
-    recognition.lang = 'fr-FR';
-    recognition.start();
+    recognition.lang = "fr-FR";
+    recognition.interimResults = false;
+
     setRecognizing(true);
 
-    recognition.onresult = async (event) => {
-      const transcript = event.results[0][0].transcript.toLowerCase();
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchTerm(transcript);
+    };
 
-      // Expressions régulières pour plusieurs phrases
-      // Exemples reconnus : "ajoute 2 téléphones", "ajouter cinq stylos", "rajoute 10 souris"
-      const regex = /(ajoute|rajoute|ajouter)\s+(\d+|\w+)\s+([\w\s]+)/;
-      const match = transcript.match(regex);
-
-      // Conversion des nombres écrits en lettres
-      const numberWords = {
-        'un': 1, 'deux': 2, 'trois': 3, 'quatre': 4, 'cinq': 5, 'six': 6, 'sept': 7,
-        'huit': 8, 'neuf': 9, 'dix': 10, 'onze': 11, 'douze': 12, 'vingt': 20
-      };
-
-      if (match) {
-        let qty = parseInt(match[2], 10);
-        if (isNaN(qty)) {
-          qty = numberWords[match[2]] || 1; // Par défaut 1 si non reconnu
-        }
-        const productName = match[3].trim();
-
-        // Recherche du produit le plus proche (nom inclusif, insensible à la casse)
-        const product = products.find(p =>
-          p.name.toLowerCase().includes(productName) ||
-          productName.includes(p.name.toLowerCase())
-        );
-        if (product) {
-          const updatedProduct = { ...product, currentStock: Number(product.currentStock) + qty };
-          try {
-            await axios.put(`/api/products/${product.id}`, updatedProduct);
-            setProducts(products.map(p => p.id === product.id ? updatedProduct : p));
-            alert(`Stock mis à jour : +${qty} ${product.name}`);
-          } catch (err) {
-            alert("Erreur lors de la mise à jour du stock.");
-          }
-        } else {
-          alert(`Produit "${productName}" non trouvé.`);
-        }
-      } else {
-        alert("Commande vocale non reconnue. Essayez : 'ajoute deux téléphones', 'rajoute cinq stylos'...");
-      }
+    recognition.onerror = (event) => {
+      console.error("Erreur de reconnaissance vocale :", event.error);
       setRecognizing(false);
     };
 
-    recognition.onerror = () => {
-      alert("Erreur de reconnaissance vocale.");
+    recognition.onend = () => {
       setRecognizing(false);
     };
+
+    recognition.start();
+  };
+
+  // Render helpers
+  const renderStockCell = (stock, alertLevel) => {
+    const isLowStock = Number(stock) <= Number(alertLevel);
+    return (
+      <Chip 
+        avatar={<Avatar>{stock}</Avatar>}
+        label={isLowStock ? 'Faible' : 'OK'}
+        color={isLowStock ? 'error' : 'success'}
+        variant="outlined"
+        size={isMobile ? 'small' : 'medium'}
+        sx={{ fontWeight: 700 }}
+      />
+    );
+  };
+
+  const renderPriceCell = (price) => {
+    return (
+      <Box sx={{ fontWeight: 700, color: theme.palette.success.dark }}>
+        ${price?.toFixed(2)}
+      </Box>
+    );
   };
 
   return (
-    <Container maxWidth="xl">
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Product Management
-        </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+    <Container 
+      maxWidth="xl" 
+      sx={{ 
+        py: isMobile ? 1 : 3,
+        px: isMobile ? 0.5 : 3,
+        overflow: 'hidden'
+      }}
+    >
+      {/* Notifications Section */}
+      {(stockRecommendations.length > 0 || anomalyNotifications.length > 0) && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
+            <WarningIcon color="warning" sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Alertes et notifications
+          </Typography>
+          <Stack 
+            spacing={1} 
+            direction={isMobile ? 'column' : 'row'} 
+            sx={{ 
+              flexWrap: 'wrap',
+              gap: 1
+            }}
+          >
+            {stockRecommendations.map(({ product, message, details }) => (
+              <Tooltip key={product.id} title={details} arrow>
+                <Chip
+                  label={isMobile ? message : `${message} - ${details}`}
+                  color="warning"
+                  icon={<InventoryIcon fontSize="small" />}
+                  sx={{ 
+                    fontWeight: 600, 
+                    fontSize: isMobile ? 12 : 14,
+                    py: 1,
+                    bgcolor: 'warning.light',
+                    color: 'warning.contrastText'
+                  }}
+                />
+              </Tooltip>
+            ))}
+            {anomalyNotifications.map(({ product, message, details }) => (
+              <Tooltip key={product.id + '-anomaly'} title={details} arrow>
+                <Chip
+                  label={isMobile ? message : `${message} - ${details}`}
+                  color="error"
+                  icon={<WarningIcon fontSize="small" />}
+                  sx={{ 
+                    fontWeight: 600, 
+                    fontSize: isMobile ? 12 : 14,
+                    py: 1,
+                    bgcolor: 'error.light',
+                    color: 'error.contrastText'
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </Stack>
+        </Box>
+      )}
+
+      {/* Header Section */}
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          mb: 3, 
+          p: isMobile ? 2 : 3,
+          borderRadius: 3,
+          bgcolor: 'background.paper'
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            justifyContent: 'space-between',
+            gap: 2
+          }}
+        >
+          <Box>
+            <Typography 
+              variant={isMobile ? 'h6' : 'h5'} 
+              fontWeight={700} 
+              sx={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <InventoryIcon color="primary" />
+              Gestion des produits
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {filteredProducts.length} produits trouvés
+            </Typography>
+          </Box>
+
+          <Stack 
+            direction={isMobile ? 'column-reverse' : 'row'} 
+            spacing={1} 
+            sx={{ 
+              width: isMobile ? '100%' : 'auto',
+              mt: isMobile ? 2 : 0
+            }}
+          >
+            <TextField
+              fullWidth={isMobile}
+              variant="outlined"
+              placeholder="Rechercher..."
+              size="small"
+              value={searchTerm}
+              onChange={handleSearch}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: isMobile && (
+                  <InputAdornment position="end">
+                    <IconButton 
+                      onClick={handleVoiceInput} 
+                      disabled={recognizing}
+                      size="small"
+                    >
+                      <Badge color="error" variant="dot" invisible={!recognizing}>
+                        <MicIcon fontSize="small" />
+                      </Badge>
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+              sx={{ 
+                width: isMobile ? '100%' : 300,
+                bgcolor: 'background.default'
+              }}
+            />
+
+            {!isMobile && (
+              <Tooltip title="Recherche vocale" arrow>
+                <IconButton 
+                  onClick={handleVoiceInput} 
+                  disabled={recognizing}
+                  sx={{ 
+                    bgcolor: 'background.default',
+                    '&:hover': { bgcolor: 'action.hover' }
+                  }}
+                >
+                  <Badge color="error" variant="dot" invisible={!recognizing}>
+                    <MicIcon />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+            )}
+
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenModal()}
+              sx={{
+                minWidth: 'auto',
+                px: isMobile ? 1 : 2,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {isMobile ? <AddIcon fontSize="small" /> : 'Nouveau'}
+            </Button>
+          </Stack>
+        </Box>
+      </Paper>
+
+      {/* Products Table Section */}
+      <Card 
+        sx={{ 
+          borderRadius: 3,
+          overflow: 'hidden',
+          boxShadow: 2
+        }}
+      >
+        <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
+          <Table 
+            size={isMobile ? 'small' : 'medium'}
+            stickyHeader
+          >
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
+                {!isMobile && <TableCell sx={{ fontWeight: 700 }}>Nom</TableCell>}
+                {!isTablet && <TableCell sx={{ fontWeight: 700 }}>Catégorie</TableCell>}
+                <TableCell align="center" sx={{ fontWeight: 700 }}>Stock</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700 }}>Prix</TableCell>
+                {!isMobile && <TableCell align="center" sx={{ fontWeight: 700 }}>Alerte</TableCell>}
+                <TableCell align="center" sx={{ fontWeight: 700 }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <CircularProgress />
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Chargement des produits...
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body2">
+                      Aucun produit trouvé
+                    </Typography>
+                    <Button 
+                      variant="text" 
+                      onClick={() => handleOpenModal()}
+                      sx={{ mt: 1 }}
+                    >
+                      Ajouter un produit
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredProducts
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((product) => (
+                    <TableRow 
+                      key={product.id} 
+                      hover 
+                      sx={{ '&:hover': { bgcolor: 'action.hover' } }}
+                    >
+                      <TableCell>{product.code}</TableCell>
+                      {!isMobile && (
+                        <TableCell sx={{ fontWeight: 600 }}>
+                          <Tooltip title={product.description || 'Aucune description'} arrow>
+                            <span>{product.name}</span>
+                          </Tooltip>
+                        </TableCell>
+                      )}
+                      {!isTablet && <TableCell>{product.category}</TableCell>}
+                      <TableCell align="center">
+                        {renderStockCell(product.currentStock, product.alertLevel)}
+                      </TableCell>
+                      <TableCell align="center">
+                        {renderPriceCell(product.price)}
+                      </TableCell>
+                      {!isMobile && (
+                        <TableCell align="center">
+                          <Chip 
+                            label={product.alertLevel} 
+                            size="small"
+                            variant="outlined"
+                            color="info"
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell align="center">
+                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                          <Tooltip title="Modifier" arrow>
+                            <IconButton 
+                              onClick={() => handleOpenModal(product)} 
+                              size="small"
+                              color="primary"
+                            >
+                              <EditIcon fontSize={isMobile ? 'small' : 'medium'} />
+                            </IconButton>
+                          </Tooltip>
+                          {user?.role === 'admin' && (
+                            <Tooltip title="Supprimer" arrow>
+                              <IconButton 
+                                onClick={() => handleOpenDeleteDialog(product)} 
+                                size="small"
+                                color="error"
+                              >
+                                <DeleteIcon fontSize={isMobile ? 'small' : 'medium'} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <TablePagination
+          rowsPerPageOptions={isMobile ? [5, 10] : [5, 10, 25]}
+          component="div"
+          count={filteredProducts.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage={isMobile ? 'Lignes:' : 'Lignes par page:'}
+          sx={{ 
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.default'
+          }}
+        />
+      </Card>
+
+      {/* Filter Dialog for Mobile */}
+      <Dialog 
+        open={filterOpen} 
+        onClose={() => setFilterOpen(false)} 
+        fullScreen={isMobile}
+      >
+        <DialogTitle>Filtrer les produits</DialogTitle>
+        <DialogContent>
           <TextField
-            variant="outlined"
-            placeholder="Search products..."
-            size="small"
+            fullWidth
+            margin="normal"
+            label="Rechercher"
             value={searchTerm}
             onChange={handleSearch}
             InputProps={{
@@ -205,80 +543,24 @@ const ProductsPage = () => {
                 </InputAdornment>
               ),
             }}
-            sx={{ width: 300 }}
           />
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenModal()}
-            >
-              Add Product
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<MicIcon />}
-              onClick={handleVoiceInput}
-              disabled={recognizing}
-            >
-              Saisie vocale
-            </Button>
-          </Box>
-        </Box>
-      </Box>
+          {/* Additional filters can be added here */}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFilterOpen(false)}>Fermer</Button>
+          <Button 
+            onClick={() => {
+              setSearchTerm('');
+              setFilterOpen(false);
+            }}
+            color="error"
+          >
+            Réinitialiser
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      <Card>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Code</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Current Stock</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Alert Level</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredProducts
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>{product.code}</TableCell>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>{product.currentStock}</TableCell>
-                    <TableCell>${product.price?.toFixed(2)}</TableCell>
-                    <TableCell>{product.alertLevel}</TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleOpenModal(product)}>
-                        <EditIcon color="primary" />
-                      </IconButton>
-                      {user?.role === 'admin' && (
-                        <IconButton onClick={() => handleOpenDeleteDialog(product)}>
-                          <DeleteIcon color="error" />
-                        </IconButton>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredProducts.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Card>
-
+      {/* Modals */}
       <ProductFormModal
         open={openModal}
         onClose={handleCloseModal}
@@ -290,11 +572,11 @@ const ProductsPage = () => {
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}
         onConfirm={handleDeleteProduct}
-        title="Delete Product"
-        message={`Are you sure you want to delete ${productToDelete?.name}?`}
+        title="Confirmer la suppression"
+        message={`Êtes-vous sûr de vouloir supprimer "${productToDelete?.name}" ?`}
       />
     </Container>
   );
-};
+}
 
 export default ProductsPage;

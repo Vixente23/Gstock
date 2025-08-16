@@ -10,21 +10,24 @@ import {
   TableContainer, 
   TableHead, 
   TableRow, 
-  Typography 
+  Typography,
+  CircularProgress
 } from '@mui/material';
 import axios from '../../api/axios';
 
 const StockMovementsPage = () => {
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchMovements = async () => {
       try {
         const response = await axios.get('/stock/movements');
-        setMovements(response.data);
+        setMovements(response.data || []);
       } catch (err) {
-        console.error('Error fetching stock movements:', err);
+        console.error('Erreur lors de la récupération des mouvements de stock:', err);
+        setError("Impossible de charger les mouvements de stock.");
       } finally {
         setLoading(false);
       }
@@ -33,17 +36,33 @@ const StockMovementsPage = () => {
     fetchMovements();
   }, []);
 
+  const formatDate = (dateStr) => {
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch {
+      return '-';
+    }
+  };
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ my: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Mouvements de stock
         </Typography>
+        
         <Button variant="contained" sx={{ mb: 3 }}>
           Ajouter un mouvement
         </Button>
+
         {loading ? (
-          <div>Chargement...</div>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>
+        ) : movements.length === 0 ? (
+          <Typography sx={{ mt: 2 }}>Aucun mouvement de stock trouvé.</Typography>
         ) : (
           <TableContainer component={Paper}>
             <Table>
@@ -60,12 +79,16 @@ const StockMovementsPage = () => {
               <TableBody>
                 {movements.map((movement) => (
                   <TableRow key={movement.id}>
-                    <TableCell>{new Date(movement.createdAt).toLocaleString()}</TableCell>
-                    <TableCell>{movement.product?.name}</TableCell>
-                    <TableCell>{movement.movementType}</TableCell>
-                    <TableCell>{movement.quantity}</TableCell>
+                    <TableCell>{formatDate(movement.createdAt)}</TableCell>
+                    <TableCell>{movement.product?.name || '-'}</TableCell>
+                    <TableCell>{movement.movementType || '-'}</TableCell>
+                    <TableCell>{movement.quantity ?? '-'}</TableCell>
                     <TableCell>{movement.reference || '-'}</TableCell>
-                    <TableCell>{movement.user?.firstName} {movement.user?.lastName}</TableCell>
+                    <TableCell>
+                      {movement.user 
+                        ? `${movement.user.firstName || ''} ${movement.user.lastName || ''}`.trim()
+                        : '-'}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

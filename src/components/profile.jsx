@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import WarningIcon from '@mui/icons-material/Warning';
 import {
   Box,
   CardContent,
@@ -11,7 +12,15 @@ import {
   TextField,
   CircularProgress,
   Paper,
-  Fade
+  Fade,
+  useMediaQuery,
+  useTheme,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Switch
 } from '@mui/material';
 import {
   Edit,
@@ -19,7 +28,13 @@ import {
   Cancel,
   CloudUpload,
   Delete,
-  VerifiedUser
+  VerifiedUser,
+  Lock,
+  Security,
+  Notifications,
+  Language,
+  DarkMode,
+  ArrowBack
 } from '@mui/icons-material';
 
 const defaultAvatar = '/logo192.png';
@@ -32,6 +47,10 @@ const initialUser = {
 };
 
 const Profile = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+
   const [mode, setMode] = useState("view"); // "view" | "edit" | "settings"
   const [user, setUser] = useState(initialUser);
   const [formValues, setFormValues] = useState(initialUser);
@@ -39,6 +58,8 @@ const Profile = () => {
   const [previewImage, setPreviewImage] = useState(initialUser.avatar);
   const [avatarError, setAvatarError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [notifications, setNotifications] = useState(true);
 
   const handleChange = (e) => {
     setFormValues((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -105,27 +126,94 @@ const Profile = () => {
     setMode("view");
   };
 
+  const settingsItems = [
+    {
+      icon: <Lock />,
+      primary: "Changer le mot de passe",
+      action: <Button variant="outlined" size="small">Modifier</Button>
+    },
+    {
+      icon: <Security />,
+      primary: "Authentification à deux facteurs",
+      action: <Switch checked={false} onChange={() => {}} />
+    },
+    {
+      icon: <Notifications />,
+      primary: "Notifications",
+      action: <Switch checked={notifications} onChange={(e) => setNotifications(e.target.checked)} />
+    },
+    {
+      icon: <Language />,
+      primary: "Langue",
+      action: <Button variant="outlined" size="small">Français</Button>
+    },
+    {
+      icon: <DarkMode />,
+      primary: "Mode sombre",
+      action: <Switch checked={darkMode} onChange={(e) => setDarkMode(e.target.checked)} />
+    }
+  ];
+
+  const dangerZoneItems = [
+    {
+      icon: <Delete color="error" />,
+      primary: "Supprimer le compte",
+      action: <Button variant="outlined" color="error" size="small">Supprimer</Button>
+    }
+  ];
+
   return (
     <Box
       sx={{
-        display: 'flex', justifyContent: 'center', alignItems: 'center',
-        minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)', p: 3
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        minHeight: '100vh', 
+        p: isMobile ? 2 : 4,
+        background: 'linear-gradient(135deg, #97bbf025 0%, #e4e8f040 100%)'
       }}
     >
       <Paper
         elevation={0}
         sx={{
-          width: '100%', maxWidth: 700, borderRadius: 4, overflow: 'hidden',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)', position: 'relative',
+          width: '100%', 
+          maxWidth: isTablet ? 600 : 700, 
+          borderRadius: 4, 
+          overflow: 'hidden',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)', 
+          position: 'relative',
           '&:before': {
-            content: '""', position: 'absolute', top: 0, left: 0, right: 0,
-            height: 120, background: 'linear-gradient(45deg, #1976d2 0%, #2196f3 100%)', zIndex: 0
+            content: '""', 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0,
+            height: isMobile ? 80 : 120, 
+            background: 'linear-gradient(45deg, #1976d2 0%, #2196f3 100%)', 
+            zIndex: 0
           }
         }}
       >
         <CardContent
-          sx={{ p: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', zIndex: 1 }}
+          sx={{ 
+            p: 0, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            textAlign: 'center', 
+            position: 'relative', 
+            zIndex: 1 
+          }}
         >
+          {/* Bouton retour pour mobile en mode settings */}
+          {mode === "settings" && isMobile && (
+            <Box sx={{ alignSelf: 'flex-start', p: 2 }}>
+              <IconButton onClick={() => setMode("view")}>
+                <ArrowBack />
+              </IconButton>
+            </Box>
+          )}
+
           <input
             accept="image/*"
             id="avatar-upload"
@@ -138,11 +226,14 @@ const Profile = () => {
             src={previewImage}
             alt={formValues.name}
             sx={{
-              width: 140, height: 140, mt: 8, mb: 2,
+              width: isMobile ? 100 : 140, 
+              height: isMobile ? 100 : 140, 
+              mt: isMobile ? 6 : 8, 
+              mb: 2,
               border: '4px solid white',
               boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
               transition: 'transform 0.3s',
-              '&:hover': { transform: 'scale(1.05)' }
+              '&:hover': mode === "edit" ? { transform: 'scale(1.05)' } : {}
             }}
           />
 
@@ -154,9 +245,9 @@ const Profile = () => {
                   <Button
                     component="span"
                     variant="outlined"
-                    size="small"
+                    size={isMobile ? 'small' : 'medium'}
                     startIcon={<CloudUpload />}
-                    sx={{ borderRadius: 20, textTransform: 'none', fontSize: '0.75rem' }}
+                    sx={{ borderRadius: 20, textTransform: 'none' }}
                   >
                     Changer
                   </Button>
@@ -164,10 +255,10 @@ const Profile = () => {
                 <Button
                   onClick={handleRemoveAvatar}
                   variant="outlined"
-                  size="small"
+                  size={isMobile ? 'small' : 'medium'}
                   color="error"
                   startIcon={<Delete />}
-                  sx={{ borderRadius: 20, textTransform: 'none', fontSize: '0.75rem' }}
+                  sx={{ borderRadius: 20, textTransform: 'none' }}
                 >
                   Supprimer
                 </Button>
@@ -191,80 +282,203 @@ const Profile = () => {
               fullWidth
               sx={{ mb: 2, maxWidth: 400, px: 3 }}
               variant="outlined"
-              size="small"
+              size={isMobile ? 'small' : 'medium'}
             />
-          ) : (
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 700, px: 3 }}>
+          ) : mode !== "settings" && (
+            <Typography 
+              variant={isMobile ? 'h5' : 'h4'} 
+              gutterBottom 
+              sx={{ 
+                fontWeight: 700, 
+                px: 3,
+                wordBreak: 'break-word'
+              }}
+            >
               {user.name}
             </Typography>
           )}
 
-          <Chip
-            label={user.role}
-            color="primary"
-            size="small"
-            sx={{ mb: 3, px: 2, py: 1, fontSize: '0.8rem', fontWeight: 600, borderRadius: 1 }}
-          />
+          {mode !== "settings" && (
+            <Chip
+              label={user.role}
+              color="primary"
+              size={isMobile ? 'small' : 'medium'}
+              sx={{ 
+                mb: 3, 
+                px: 2, 
+                py: 1, 
+                fontSize: '0.8rem', 
+                fontWeight: 600, 
+                borderRadius: 1 
+              }}
+            />
+          )}
 
-          <Divider sx={{ width: '80%', my: 1 }} />
+          {mode !== "settings" && (
+            <Divider sx={{ width: '80%', my: 1 }} />
+          )}
 
           {/* Email */}
-          <Stack spacing={2} sx={{ width: '100%', mb: 3, px: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {mode === "edit" ? (
-                <TextField
-                  name="email"
-                  label="Email"
-                  value={formValues.email}
-                  onChange={handleChange}
-                  fullWidth
-                  sx={{ maxWidth: 400 }}
-                  variant="outlined"
-                  size="small"
-                />
-              ) : (
-                <Typography color="textSecondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                  {user.email}
-                  <VerifiedUser color="success" sx={{ ml: 1, fontSize: '1rem' }} />
-                </Typography>
-              )}
-            </Box>
-          </Stack>
+          {mode !== "settings" && (
+            <Stack spacing={2} sx={{ width: '100%', mb: 3, px: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {mode === "edit" ? (
+                  <TextField
+                    name="email"
+                    label="Email"
+                    value={formValues.email}
+                    onChange={handleChange}
+                    fullWidth
+                    sx={{ maxWidth: 400 }}
+                    variant="outlined"
+                    size={isMobile ? 'small' : 'medium'}
+                  />
+                ) : (
+                  <Typography color="textSecondary" sx={{ display: 'flex', alignItems: 'center' }}>
+                    {user.email}
+                    <VerifiedUser color="success" sx={{ ml: 1, fontSize: '1rem' }} />
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
+          )}
 
           {/* Mode paramètres */}
           {mode === "settings" && (
-            <Box sx={{ width: '100%', px: 3, pb: 3 }}>
-              <Typography variant="h5" gutterBottom>Paramètres du compte</Typography>
+            <Box sx={{ width: '100%', px: isMobile ? 2 : 3, pb: 3 }}>
+              <Typography 
+                variant={isMobile ? 'h6' : 'h5'} 
+                gutterBottom 
+                sx={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  fontWeight: 700,
+                  mt: isMobile ? 0 : 2
+                }}
+              >
+                <Security fontSize={isMobile ? 'medium' : 'large'} />
+                Paramètres du compte
+              </Typography>
               <Divider sx={{ mb: 2 }} />
-              <Stack spacing={2}>
-                <Button variant="outlined">Changer le mot de passe</Button>
-                <Button variant="outlined">Activer la double authentification</Button>
-                <Button variant="outlined" color="error">Supprimer le compte</Button>
-              </Stack>
-              <Button variant="contained" sx={{ mt: 3 }} onClick={() => setMode("view")}>
-                Retour
-              </Button>
+              
+              <List sx={{ width: '100%' }}>
+                {settingsItems.map((item, index) => (
+                  <ListItem 
+                    key={index}
+                    secondaryAction={item.action}
+                    sx={{
+                      py: 1,
+                      px: 0,
+                      alignItems: 'center'
+                    }}
+                  >
+                    <ListItemIcon>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.primary}
+                      primaryTypographyProps={{ fontWeight: 500 }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+
+              <Typography 
+                variant={isMobile ? 'h6' : 'h5'} 
+                gutterBottom 
+                sx={{ 
+                  mt: 3,
+                  color: 'error.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  fontWeight: 700
+                }}
+              >
+                <WarningIcon color="error" fontSize={isMobile ? 'medium' : 'large'} />
+                Zone dangereuse
+              </Typography>
+              <Divider sx={{ mb: 2, borderColor: 'error.light' }} />
+              
+              <List sx={{ width: '100%' }}>
+                {dangerZoneItems.map((item, index) => (
+                  <ListItem 
+                    key={index}
+                    secondaryAction={item.action}
+                    sx={{
+                      py: 1,
+                      px: 0,
+                      alignItems: 'center'
+                    }}
+                  >
+                    <ListItemIcon>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.primary}
+                      primaryTypographyProps={{ 
+                        fontWeight: 500, 
+                        color: 'error.main' 
+                      }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+
+              {isMobile ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                  <Button 
+                    variant="contained" 
+                    onClick={() => setMode("view")}
+                    startIcon={<ArrowBack />}
+                  >
+                    Retour
+                  </Button>
+                </Box>
+              ) : (
+                <Button 
+                  variant="contained" 
+                  sx={{ mt: 3 }} 
+                  onClick={() => setMode("view")}
+                >
+                  Retour au profil
+                </Button>
+              )}
             </Box>
           )}
 
           {/* Boutons d'action selon le mode */}
           {mode === "edit" && (
-            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mb: 3 }}>
+            <Stack 
+              direction={isMobile ? 'column' : 'row'} 
+              spacing={2} 
+              justifyContent="center" 
+              sx={{ 
+                mb: 3,
+                width: '100%',
+                px: 3
+              }}
+            >
               <Button
                 variant="contained"
                 color="primary"
+                fullWidth={isMobile}
                 startIcon={isSaving ? <CircularProgress size={18} /> : <Save />}
                 onClick={handleSave}
                 disabled={isSaving}
+                size={isMobile ? 'medium' : 'large'}
               >
                 {isSaving ? 'Enregistrement...' : 'Enregistrer'}
               </Button>
               <Button
                 variant="outlined"
                 color="inherit"
+                fullWidth={isMobile}
                 startIcon={<Cancel />}
                 onClick={handleCancel}
                 disabled={isSaving}
+                size={isMobile ? 'medium' : 'large'}
               >
                 Annuler
               </Button>
@@ -272,18 +486,30 @@ const Profile = () => {
           )}
 
           {mode === "view" && (
-            <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+            <Stack 
+              direction={isMobile ? 'column' : 'row'} 
+              spacing={2} 
+              sx={{ 
+                mb: 3,
+                width: '100%',
+                px: 3
+              }}
+            >
               <Button
                 variant="contained"
                 color="primary"
+                fullWidth={isMobile}
                 startIcon={<Edit />}
                 onClick={() => setMode("edit")}
+                size={isMobile ? 'medium' : 'large'}
               >
                 Modifier le profil
               </Button>
               <Button
                 variant="outlined"
+                fullWidth={isMobile}
                 onClick={() => setMode("settings")}
+                size={isMobile ? 'medium' : 'large'}
               >
                 Paramètres
               </Button>
